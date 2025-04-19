@@ -33,7 +33,7 @@ export const authService = {
 // User services
 export const userService = {
   getUser: async (userId: string): Promise<UserResponse> => {
-    const response = await api.post(`/user/${userId}`);
+    const response = await api.get(`/user/${userId}`);
     return response.data;
   },
   
@@ -54,6 +54,11 @@ export const userService = {
 export const categoryService = {
   getCategory: async (categoryId: string): Promise<CategoryResponse> => {
     const response = await api.get(`/category/${categoryId}`);
+    return response.data;
+  },
+  
+  getAllCategories: async (): Promise<CategoryResponse[]> => {
+    const response = await api.get('/category');
     return response.data;
   }
 };
