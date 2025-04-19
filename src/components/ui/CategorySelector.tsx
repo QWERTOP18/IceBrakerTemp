@@ -11,23 +11,14 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   onCategorySelect, 
   selectedCategoryId 
 }) => {
-  const [categories, setCategories] = useState<CategoryOption[]>([
-    // Default categories - these would normally be loaded from API
-    { id: 'chess', name: 'Chess', color: '#4f46e5' },
-    { id: 'pingpong', name: 'Ping Pong', color: '#0ea5e9' },
-    { id: 'pong', name: 'Pong', color: '#ef4444' }
-  ]);
-  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // In a real app, you would fetch categories from the API
+  // Fetch categories from the API
   useEffect(() => {
-    // This is a placeholder for the actual API call
-    // You would need to implement an endpoint to get all categories
-    /*
     const fetchCategories = async () => {
       setLoading(true);
       try {
-        // This is just a mock - you'd need to implement the actual API call
         const response = await categoryService.getAllCategories();
         const categoryOptions: CategoryOption[] = response.map(cat => ({
           id: cat._id,
@@ -37,13 +28,18 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
         setCategories(categoryOptions);
       } catch (error) {
         console.error('Error fetching categories:', error);
+        // Fallback to default categories if API fails
+        setCategories([
+          { id: 'chess', name: 'Chess', color: '#4f46e5' },
+          { id: 'pingpong', name: 'Ping Pong', color: '#0ea5e9' },
+          { id: 'pong', name: 'Pong', color: '#ef4444' }
+        ]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchCategories();
-    */
   }, []);
 
   // When a category is selected, load the details
