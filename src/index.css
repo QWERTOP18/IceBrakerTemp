@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 79 70 229;
+    --color-primary-light: 139 92 246;
+    --color-secondary: 59 130 246;
+    --color-accent: 248 113 113;
+    --color-success: 34 197 94;
+    --color-warning: 250 204 21;
+    --color-error: 239 68 68;
+    --color-background: 249 250 251;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  h2 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h3 {
+    @apply text-xl md:text-2xl;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-lg shadow-md overflow-hidden border border-gray-100;
+  }
+
+  .card-header {
+    @apply px-6 py-4 border-b border-gray-100;
+  }
+
+  .card-body {
+    @apply p-6;
+  }
+
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500;
+  }
+
+  .btn-secondary {
+    @apply bg-blue-500 hover:bg-blue-600 text-white focus:ring-blue-500;
+  }
+
+  .btn-outline {
+    @apply border border-gray-300 hover:bg-gray-50 focus:ring-indigo-500;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-indigo-100 text-indigo-800;
+  }
+
+  .badge-secondary {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  .badge-success {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .badge-error {
+    @apply bg-red-100 text-red-800;
+  }
+
+  .sidebar {
+    @apply fixed top-0 left-0 h-full bg-indigo-900 text-white transition-all duration-300 ease-in-out z-30;
+  }
+
+  .sidebar-item {
+    @apply flex items-center px-4 py-3 text-white hover:bg-indigo-800 transition-colors;
+  }
+
+  .sidebar-item.active {
+    @apply bg-indigo-800 border-l-4 border-indigo-400;
+  }
+
+  /* Animations */
+  .fade-in {
+    @apply transition-opacity duration-300 ease-in-out;
+  }
+
+  .slide-in {
+    @apply transition-transform duration-300 ease-in-out;
+  }
+
+  .pulse {
+    @apply animate-pulse;
+  }
+}
