@@ -11,6 +11,7 @@ import RatingDetailPage from './components/pages/RatingDetailPage';
 import MatchRecordPage from './components/pages/MatchRecordPage';
 import RankingPage from './components/pages/RankingPage';
 import SearchUsersPage from './components/pages/SearchUsersPage';
+import McpChatPage from './components/pages/McpChatPage';
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -116,6 +117,17 @@ function AppRoutes() {
           <ProtectedRoute>
             <MainLayout>
               <SearchUsersPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/mcpchat" 
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <McpChatPage />
             </MainLayout>
           </ProtectedRoute>
         } 
