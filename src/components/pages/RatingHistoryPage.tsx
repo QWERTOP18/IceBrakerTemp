@@ -36,13 +36,35 @@ const RatingHistoryPage: React.FC = () => {
         const userData = await userService.getUser(userId);
         setUserName(userData.name);
         
-        // Fetch category data
-        const categoryData = await categoryService.getCategory(categoryId);
-        setCategoryName(categoryData.name);
+        // Fetch all categories to find the current one
+        try {
+          const categories = await categoryService.getAllCategories();
+          const category = categories.find(cat => cat._id === categoryId);
+          if (category) {
+            setCategoryName(category.name);
+          } else {
+            setCategoryName(`Category ${categoryId}`);
+          }
+        } catch (categoryError) {
+          console.error('Error fetching category:', categoryError);
+          setCategoryName(`Category ${categoryId}`);
+        }
         
         // Fetch current rating
-        const ratingData = await ratingService.getUserCategoryRating(userId, categoryId);
-        setCurrentRating(ratingData.rate);
+        try {
+          const ratingData = await ratingService.getUserCategoryRating(userId, categoryId);
+          setCurrentRating(ratingData.rate);
+        } catch (ratingError) {
+          console.error('Error fetching current rating:', ratingError);
+          
+          // If we can't get the current rating, try to use the most recent one from history
+          const ratingHistory = await ratingService.getUserRatingHistory(userId, categoryId);
+          if (ratingHistory && ratingHistory.length > 0) {
+            // Sort by date (newest first)
+            ratingHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            setCurrentRating(ratingHistory[0].rate);
+          }
+        }
         
         // Fetch rating history directly from the API
         const ratingHistory = await ratingService.getUserRatingHistory(userId, categoryId);
@@ -103,7 +125,7 @@ const RatingHistoryPage: React.FC = () => {
         </div>
         <div className="flex items-center">
           <span className="text-gray-600 mr-2">Current Rating:</span>
-          <span className="font-bold text-xl text-indigo-600">{currentRating}</span>
+          <span className="font-bold text-xl text-indigo-600">{currentRating.toFixed(2)}</span>
         </div>
       </div>
       
