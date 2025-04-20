@@ -12,6 +12,7 @@ import MatchRecordPage from './components/pages/MatchRecordPage';
 import RankingPage from './components/pages/RankingPage';
 import SearchUsersPage from './components/pages/SearchUsersPage';
 import McpChatPage from './components/pages/McpChatPage';
+import RatingHistoryPage from './components/pages/RatingHistoryPage';
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -106,6 +107,17 @@ function AppRoutes() {
           <ProtectedRoute>
             <MainLayout>
               <RankingPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/rating-history/:userId/:categoryId" 
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <RatingHistoryPage />
             </MainLayout>
           </ProtectedRoute>
         } 

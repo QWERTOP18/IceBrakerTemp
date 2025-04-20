@@ -42,15 +42,20 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
     fetchCategories();
   }, []);
 
-  // When a category is selected, load the details
+  // When categories are loaded and we have a selectedCategoryId, make sure it's selected
   useEffect(() => {
-    if (selectedCategoryId) {
+    if (selectedCategoryId && categories.length > 0) {
       const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
       if (selectedCategory) {
-        onCategorySelect(selectedCategory);
+        // Only call onCategorySelect if the category exists and isn't already selected
+        // This prevents infinite loops
+        const isAlreadySelected = selectedCategory.id === selectedCategoryId;
+        if (!isAlreadySelected) {
+          onCategorySelect(selectedCategory);
+        }
       }
     }
-  }, [selectedCategoryId, categories, onCategorySelect]);
+  }, [selectedCategoryId, categories]);  // Removed onCategorySelect from dependencies
 
   const handleCategorySelect = (category: CategoryOption) => {
     onCategorySelect(category);

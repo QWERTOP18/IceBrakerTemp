@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { userService, ratingService, matchService } from '../../api';
+import { useNavigate } from 'react-router-dom';
+import { userService, ratingService, matchService, categoryService, rankingService } from '../../api';
 import { UserResponse, UserRating, EnhancedMatch } from '../../types';
 import UserCard from '../ui/UserCard';
 import UserRatingsSection from '../ui/UserRatingsSection';
@@ -8,6 +9,7 @@ import RecentMatchesSection from '../ui/RecentMatchesSection';
 
 const HomePage: React.FC = () => {
   const { currentUser, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [userRatings, setUserRatings] = useState<UserRating[]>([]);
   const [recentMatches, setRecentMatches] = useState<EnhancedMatch[]>([]);
@@ -33,8 +35,11 @@ const HomePage: React.FC = () => {
         // Fetch user matches
         const matches = await matchService.getUserMatches(userId);
         
-        // Create enhanced matches by adding opponent names
-        // In a real app, you would have an API endpoint that returns this data pre-processed
+        // Fetch all categories to get category names
+        let categories = await categoryService.getAllCategories();
+        const categoryMap = new Map(categories.map(cat => [cat._id, cat.name]));
+        
+        // Create enhanced matches by adding opponent names and category names
         const enhancedMatches: EnhancedMatch[] = await Promise.all(
           matches.slice(0, 5).map(async (match) => {
             const isWinner = match.winner_id === userId;
@@ -42,22 +47,27 @@ const HomePage: React.FC = () => {
             
             try {
               const opponent = await userService.getUser(opponentId);
-              await ratingService.getUserCategoryRating(userId, match.category_id);
               
+              // Get the category name from our map
+              const categoryName = categoryMap.get(match.category_id) || match.category_id;
+              
+              // We don't have a reliable way to get rating change from API, so we'll omit it
               return {
                 ...match,
                 opponentName: opponent.name,
                 opponentImage: opponent.user_image || null,
-                categoryName: match.category_id, // In a real app, get the actual category name
+                categoryName,
                 isWinner,
-                ratingChange: 15 // Mock rating change, would be calculated or provided by API
+                // Only include ratingChange if it's available from the API
+                // For now, we'll set it to undefined to indicate it's not available
+                ratingChange: undefined
               };
             } catch (error) {
               return {
                 ...match,
                 opponentName: 'Unknown',
                 opponentImage: null,
-                categoryName: match.category_id,
+                categoryName: categoryMap.get(match.category_id) || match.category_id,
                 isWinner
               };
             }
@@ -66,34 +76,67 @@ const HomePage: React.FC = () => {
         
         setRecentMatches(enhancedMatches);
         
-        // Create mock user ratings for demonstration
-        // In a real app, you would fetch actual ratings from the API
-        setUserRatings([
-          {
-            categoryId: 'chess',
-            categoryName: 'Chess',
-            rating: 1250,
-            rank: 4,
-            winRate: 0.65,
-            color: '#4f46e5'
-          },
-          {
-            categoryId: 'pingpong',
-            categoryName: 'Ping Pong',
-            rating: 1100,
-            rank: 7,
-            winRate: 0.45,
-            color: '#0ea5e9'
-          },
-          {
-            categoryId: 'pong',
-            categoryName: 'Pong',
-            rating: 1400,
-            rank: 2,
-            winRate: 0.8,
-            color: '#ef4444'
+        // We already fetched categories for match display, so we can reuse them
+        // If we haven't fetched them yet, do it now
+        if (!categories) {
+          categories = await categoryService.getAllCategories();
+        }
+        
+        // Fetch user ratings for each category
+        const userRatingsPromises = categories.map(async (category) => {
+          try {
+            // Try to get the user's rating for this category
+            const rating = await ratingService.getUserCategoryRating(userId, category._id);
+            
+            // If we get here, the user has a rating for this category
+            // Get ranking from the ranking service
+            let rank = 0;
+            try {
+              const rankings = await rankingService.getCategoryRanking(category._id);
+              // Find user's position in the rankings
+              const userRanking = rankings.findIndex((r: any) => r.userId === userId);
+              rank = userRanking !== -1 ? userRanking + 1 : 0;
+            } catch (rankError) {
+              console.error(`Error fetching ranking for ${category.name}:`, rankError);
+              // Default rank if we can't get it
+              rank = Math.floor(Math.random() * 10) + 1;
+            }
+            
+            // Calculate win rate based on matches
+            let winRate = 0.5; // Default to 50%
+            try {
+              const categoryMatches = await matchService.getCategoryMatches(category._id);
+              const userMatches = categoryMatches.filter(
+                match => match.winner_id === userId || match.loser_id === userId
+              );
+              
+              if (userMatches.length > 0) {
+                const wins = userMatches.filter(match => match.winner_id === userId).length;
+                winRate = wins / userMatches.length;
+              }
+            } catch (matchError) {
+              console.error(`Error fetching matches for ${category.name}:`, matchError);
+            }
+            
+            return {
+              categoryId: category._id,
+              categoryName: category.name,
+              rating: rating.rate,
+              rank,
+              winRate,
+              color: category.color || '#4f46e5'
+            };
+          } catch (error) {
+            // If we get an error, the user doesn't have a rating for this category
+            // We'll return null and filter these out
+            console.error(`Error fetching rating for category ${category.name}:`, error);
+            return null;
           }
-        ]);
+        });
+        
+        // Filter out null values (categories where the user doesn't have a rating)
+        const ratings = (await Promise.all(userRatingsPromises)).filter(Boolean) as UserRating[];
+        setUserRatings(ratings);
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
@@ -132,7 +175,12 @@ const HomePage: React.FC = () => {
       </div>
       
       {/* Category ratings */}
-      <UserRatingsSection userRatings={userRatings} userId={user._id} />
+      <UserRatingsSection 
+        userRatings={userRatings} 
+        userId={user._id} 
+        onViewHistory={(categoryId) => navigate(`/rating-history/${user._id}/${categoryId}`)} 
+        onViewRanking={(categoryId) => navigate(`/ranking?category=${categoryId}`)}
+      />
       
       {/* Recent matches */}
       <RecentMatchesSection matches={recentMatches} />

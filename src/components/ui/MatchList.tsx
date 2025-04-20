@@ -111,13 +111,13 @@ const MatchList: React.FC<MatchListProps> = ({
                     >
                       {match.isWinner ? 'Win' : 'Loss'} ({match.isWinner ? match.winner_point : match.loser_point} - {match.isWinner ? match.loser_point : match.winner_point})
                     </span>
-                    {match.ratingChange && (
+                    {match.ratingChange !== undefined ? (
                       <span 
                         className={`ml-2 inline-block text-xs font-medium ${match.ratingChange >= 0 ? 'text-green-500' : 'text-red-500'}`}
                       >
                         {match.ratingChange >= 0 ? '+' : ''}{match.ratingChange}
                       </span>
-                    )}
+                    ) : null}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {format(parseISO(match.date), 'MMM d, yyyy')}

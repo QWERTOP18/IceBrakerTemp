@@ -68,6 +68,15 @@ export const ratingService = {
   getUserCategoryRating: async (userId: string, categoryId: string): Promise<RatingResponse> => {
     const response = await api.get(`/rating/user/${userId}/category/${categoryId}`);
     return response.data;
+  },
+  
+  getUserRatingHistory: async (userId: string, categoryId: string): Promise<any[]> => {
+    const response = await api.get(`/rating-history/${userId}/${categoryId}`);
+    return response.data;
+  },
+  
+  getUserRatingHistoryGraphUrl: (userId: string, categoryId: string): string => {
+    return `${import.meta.env.VITE_API_URL}/rating-history/${userId}/${categoryId}/graph-image`;
   }
 };
 

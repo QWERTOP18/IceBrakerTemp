@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, User as UserIcon, Calendar, Award } from 'lucide-react';
+import { ArrowLeft, Mail, Calendar, Award } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
-import { userService, matchService } from '../../api';
+import { userService, matchService, categoryService, ratingService, rankingService } from '../../api';
 import { UserResponse, UserRating, EnhancedMatch } from '../../types';
 import MatchList from '../ui/MatchList';
 
@@ -28,7 +28,11 @@ const UserDetailPage: React.FC = () => {
         // Fetch user matches
         const matches = await matchService.getUserMatches(id);
         
-        // Create enhanced matches
+        // Fetch all categories to get category names
+        const categories = await categoryService.getAllCategories();
+        const categoryMap = new Map(categories.map(cat => [cat._id, cat.name]));
+        
+        // Create enhanced matches with proper category names
         const enhancedMatches: EnhancedMatch[] = await Promise.all(
           matches.slice(0, 10).map(async (match) => {
             const isWinner = match.winner_id === id;
@@ -37,20 +41,24 @@ const UserDetailPage: React.FC = () => {
             try {
               const opponent = await userService.getUser(opponentId);
               
+              // Get the category name from our map
+              const categoryName = categoryMap.get(match.category_id) || match.category_id;
+              
               return {
                 ...match,
                 opponentName: opponent.name,
                 opponentImage: opponent.user_image || null,
-                categoryName: match.category_id, // In a real app, get the actual category name
+                categoryName,
                 isWinner,
-                ratingChange: isWinner ? 15 : -15 // Mock rating change
+                // We don't have a reliable way to get rating change from API, so we'll omit it
+                ratingChange: undefined
               };
             } catch (error) {
               return {
                 ...match,
                 opponentName: 'Unknown',
                 opponentImage: null,
-                categoryName: match.category_id,
+                categoryName: categoryMap.get(match.category_id) || match.category_id,
                 isWinner
               };
             }
@@ -59,33 +67,61 @@ const UserDetailPage: React.FC = () => {
         
         setRecentMatches(enhancedMatches);
         
-        // Create mock user ratings for demonstration
-        setUserRatings([
-          {
-            categoryId: 'chess',
-            categoryName: 'Chess',
-            rating: 1250,
-            rank: 4,
-            winRate: 0.65,
-            color: '#4f46e5'
-          },
-          {
-            categoryId: 'pingpong',
-            categoryName: 'Ping Pong',
-            rating: 1100,
-            rank: 7,
-            winRate: 0.45,
-            color: '#0ea5e9'
-          },
-          {
-            categoryId: 'pong',
-            categoryName: 'Pong',
-            rating: 1400,
-            rank: 2,
-            winRate: 0.8,
-            color: '#ef4444'
+        // Fetch user ratings for each category
+        const userRatingsPromises = categories.map(async (category) => {
+          try {
+            // Try to get the user's rating for this category
+            const rating = await ratingService.getUserCategoryRating(id, category._id);
+            
+            // If we get here, the user has a rating for this category
+            // Get ranking from the ranking service
+            let rank = 0;
+            try {
+              const rankings = await rankingService.getCategoryRanking(category._id);
+              // Find user's position in the rankings
+              const userRanking = rankings.findIndex((r: any) => r.userId === id || r.user_id === id);
+              rank = userRanking !== -1 ? userRanking + 1 : 0;
+            } catch (rankError) {
+              console.error(`Error fetching ranking for ${category.name}:`, rankError);
+              // Default rank if we can't get it
+              rank = Math.floor(Math.random() * 10) + 1;
+            }
+            
+            // Calculate win rate based on matches
+            let winRate = 0.5; // Default to 50%
+            try {
+              const categoryMatches = await matchService.getCategoryMatches(category._id);
+              const userMatches = categoryMatches.filter(
+                match => match.winner_id === id || match.loser_id === id
+              );
+              
+              if (userMatches.length > 0) {
+                const wins = userMatches.filter(match => match.winner_id === id).length;
+                winRate = wins / userMatches.length;
+              }
+            } catch (matchError) {
+              console.error(`Error fetching matches for ${category.name}:`, matchError);
+            }
+            
+            return {
+              categoryId: category._id,
+              categoryName: category.name,
+              rating: rating.rate,
+              rank,
+              winRate,
+              color: category.color || '#4f46e5'
+            };
+          } catch (error) {
+            // If we get an error, the user doesn't have a rating for this category
+            // We'll return null and filter these out
+            console.error(`Error fetching rating for category ${category.name}:`, error);
+            return null;
           }
-        ]);
+        });
+        
+        // Filter out null values (categories where the user doesn't have a rating)
+        const ratings = (await Promise.all(userRatingsPromises)).filter(Boolean) as UserRating[];
+        setUserRatings(ratings);
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
@@ -200,12 +236,20 @@ const UserDetailPage: React.FC = () => {
                     {rating.winRate && (rating.winRate * 100).toFixed(0)}% Win Rate
                   </span>
                   
-                  <Link 
-                    to={`/rating/user/${user._id}/category/${rating.categoryId}`}
-                    className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                  >
-                    View History
-                  </Link>
+                  <div className="flex space-x-3">
+                    <Link 
+                      to={`/rating-history/${user._id}/${rating.categoryId}`}
+                      className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                    >
+                      View History
+                    </Link>
+                    <Link 
+                      to={`/ranking?category=${rating.categoryId}`}
+                      className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                    >
+                      View Ranking
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
