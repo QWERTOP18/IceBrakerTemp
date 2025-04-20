@@ -12,17 +12,25 @@ const RankingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Load initial category from URL params when component mounts
+  // Load initial category from URL params and fetch rankings immediately
   useEffect(() => {
     const categoryId = searchParams.get('category');
-    if (categoryId && (!selectedCategory || selectedCategory.id !== categoryId)) {
-      // We only need to set the ID here, the CategorySelector will handle the rest
-      setSelectedCategory(prev => {
-        if (prev?.id !== categoryId) {
-          return { id: categoryId, name: '' }; // Temporary object, will be replaced by CategorySelector
-        }
-        return prev;
-      });
+    
+    if (categoryId) {
+      // If we have a category ID in the URL, use it and fetch rankings immediately
+      if (!selectedCategory || selectedCategory.id !== categoryId) {
+        setSelectedCategory(prev => {
+          if (prev?.id !== categoryId) {
+            // Fetch rankings immediately with the category ID from URL
+            fetchRankings(categoryId);
+            return { id: categoryId, name: '' }; // Temporary object, will be replaced by CategorySelector
+          }
+          return prev;
+        });
+      }
+    } else {
+      // If no category in URL, we'll select the first one when categories are loaded
+      // This will be handled by the CategorySelector component
     }
   }, [searchParams.get('category')]); // Only depend on the category param
   
@@ -193,7 +201,7 @@ const RankingPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-lg font-bold text-indigo-600">
-                      {rank.rating}
+                      {rank.rating.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link 

@@ -116,7 +116,7 @@ const RatingHistoryPage: React.FC = () => {
               Rating Progression
             </h2>
           </div>
-          <div className="w-full h-64 bg-gray-50 rounded-lg overflow-hidden">
+          <div className="w-full h-96 bg-gray-50 rounded-lg overflow-hidden">
             <img 
               src={ratingService.getUserRatingHistoryGraphUrl(userId, categoryId)}
               alt="Rating History Graph"

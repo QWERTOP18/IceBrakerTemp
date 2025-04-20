@@ -53,7 +53,7 @@ const UserRatingsSection: React.FC<UserRatingsSectionProps> = ({
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
                   <TrendingUp className="mr-2 text-gray-500" size={20} />
-                  <div className="text-2xl font-bold">{rating.rating.toFixed(0)}</div>
+                  <div className="text-2xl font-bold">{rating.rating.toFixed(2)}</div>
                 </div>
                 <div className="flex items-center">
                   <Activity className="mr-2 text-gray-500" size={20} />
