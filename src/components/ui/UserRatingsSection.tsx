@@ -1,14 +1,38 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Trophy, TrendingUp, Activity } from 'lucide-react';
 import { UserRating } from '../../types';
 
 interface UserRatingsSectionProps {
   userRatings: UserRating[];
   userId: string;
+  onViewHistory?: (categoryId: string) => void;
+  onViewRanking?: (categoryId: string) => void;
 }
 
-const UserRatingsSection: React.FC<UserRatingsSectionProps> = ({ userRatings, userId }) => {
+const UserRatingsSection: React.FC<UserRatingsSectionProps> = ({ 
+  userRatings, 
+  userId, 
+  onViewHistory, 
+  onViewRanking 
+}) => {
+  const navigate = useNavigate();
+  
+  const handleViewHistory = (categoryId: string) => {
+    if (onViewHistory) {
+      onViewHistory(categoryId);
+    } else {
+      navigate(`/rating-history/${userId}/${categoryId}`);
+    }
+  };
+  
+  const handleViewRanking = (categoryId: string) => {
+    if (onViewRanking) {
+      onViewRanking(categoryId);
+    } else {
+      navigate(`/ranking?category=${categoryId}`);
+    }
+  };
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-4 flex items-center">
@@ -29,7 +53,7 @@ const UserRatingsSection: React.FC<UserRatingsSectionProps> = ({ userRatings, us
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
                   <TrendingUp className="mr-2 text-gray-500" size={20} />
-                  <div className="text-2xl font-bold">{rating.rating.toFixed(0)}</div>
+                  <div className="text-2xl font-bold">{rating.rating.toFixed(2)}</div>
                 </div>
                 <div className="flex items-center">
                   <Activity className="mr-2 text-gray-500" size={20} />
@@ -43,18 +67,18 @@ const UserRatingsSection: React.FC<UserRatingsSectionProps> = ({ userRatings, us
                 </div>
               </div>
               <div className="flex justify-between mt-4">
-                <Link 
-                  to={`/rating/user/${userId}/category/${rating.categoryId}`}
+                <button 
+                  onClick={() => handleViewHistory(rating.categoryId)}
                   className="btn btn-outline text-sm"
                 >
                   View History
-                </Link>
-                <Link 
-                  to={`/ranking?category=${rating.categoryId}`}
+                </button>
+                <button 
+                  onClick={() => handleViewRanking(rating.categoryId)}
                   className="btn btn-outline text-sm"
                 >
                   View Ranking
-                </Link>
+                </button>
               </div>
             </div>
           </div>

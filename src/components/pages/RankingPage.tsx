@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Trophy, ChevronRight, ChevronDown, ChevronUp, Search } from 'lucide-react';
-import { userService, categoryService, rankingService } from '../../api';
+import { Trophy, ChevronRight, Search } from 'lucide-react';
+import { userService, rankingService } from '../../api';
 import { RankingItem, CategoryOption } from '../../types';
 import CategorySelector from '../ui/CategorySelector';
 
@@ -12,44 +12,91 @@ const RankingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Get category from URL params
+  // Load initial category from URL params and fetch rankings immediately
   useEffect(() => {
-    const categoryId = searchParams.get('category') || 'chess'; // Default to chess if not specified
+    const categoryId = searchParams.get('category');
     
-    if (categoryId && (!selectedCategory || selectedCategory.id !== categoryId)) {
-      handleCategorySelect({
-        id: categoryId,
-        name: categoryId.charAt(0).toUpperCase() + categoryId.slice(1), // Capitalize first letter
-      });
+    if (categoryId) {
+      // If we have a category ID in the URL, use it and fetch rankings immediately
+      if (!selectedCategory || selectedCategory.id !== categoryId) {
+        setSelectedCategory(prev => {
+          if (prev?.id !== categoryId) {
+            // Fetch rankings immediately with the category ID from URL
+            fetchRankings(categoryId);
+            return { id: categoryId, name: '' }; // Temporary object, will be replaced by CategorySelector
+          }
+          return prev;
+        });
+      }
+    } else {
+      // If no category in URL, we'll select the first one when categories are loaded
+      // This will be handled by the CategorySelector component
     }
-  }, [searchParams]);
+  }, [searchParams.get('category')]); // Only depend on the category param
   
-  const handleCategorySelect = (category: CategoryOption) => {
+  // Memoize the handleCategorySelect function to prevent recreating it on every render
+  const handleCategorySelect = React.useCallback((category: CategoryOption) => {
     setSelectedCategory(category);
     setSearchParams({ category: category.id });
     fetchRankings(category.id);
-  };
+  }, [setSearchParams]); // Only depend on setSearchParams which is stable
   
   const fetchRankings = async (categoryId: string) => {
     setLoading(true);
     
     try {
-      // In a real app, you would get this from the API
-      // const response = await rankingService.getCategoryRanking(categoryId);
+      // Get rankings from the API
+      const rankingsData = await rankingService.getCategoryRanking(categoryId);
       
-      // For demonstration, creating mock data
-      const mockRankings: RankingItem[] = Array.from({ length: 20 }, (_, index) => ({
-        userId: `user${index + 1}`,
-        userName: `User ${index + 1}`,
-        intraName: `user_${index + 1}`,
-        userImage: index % 3 === 0 ? `https://i.pravatar.cc/150?img=${index + 10}` : undefined,
-        rating: 1500 - (index * 15) + Math.floor(Math.random() * 30),
-        rank: index + 1
-      }));
+      // Transform API data to our RankingItem format
+      // Since we don't know the exact structure of the API response, we'll handle it flexibly
+      const processedRankings: RankingItem[] = [];
       
-      setRankings(mockRankings);
+      // Process the rankings data
+      if (Array.isArray(rankingsData)) {
+        // Map the API data to our format
+        const rankingPromises = rankingsData.map(async (item: any, index: number) => {
+          try {
+            // Get user details if needed
+            const userId = item.user_id || item.userId || item._id;
+            let userData;
+            
+            try {
+              userData = await userService.getUser(userId);
+            } catch (userError) {
+              console.error(`Error fetching user ${userId}:`, userError);
+              // Create minimal user data if we can't fetch the user
+              userData = {
+                _id: userId,
+                name: item.name || `User ${index + 1}`,
+                intra_name: item.intra_name || `user_${index + 1}`,
+                user_image: null
+              };
+            }
+            
+            return {
+              userId: userData._id,
+              userName: userData.name,
+              intraName: userData.intra_name,
+              userImage: userData.user_image || undefined,
+              rating: item.rate || item.rating || 1500,
+              rank: index + 1 // Use the index as rank if not provided
+            };
+          } catch (error) {
+            console.error(`Error processing ranking item:`, error);
+            return null;
+          }
+        });
+        
+        // Wait for all user data to be fetched
+        const results = await Promise.all(rankingPromises);
+        processedRankings.push(...results.filter(Boolean) as RankingItem[]);
+      }
+      
+      setRankings(processedRankings);
     } catch (error) {
       console.error('Error fetching rankings:', error);
+      setRankings([]);
     } finally {
       setLoading(false);
     }
@@ -154,7 +201,7 @@ const RankingPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-lg font-bold text-indigo-600">
-                      {rank.rating}
+                      {rank.rating.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link 
