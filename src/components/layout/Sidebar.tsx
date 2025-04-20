@@ -8,9 +8,10 @@ import {
   Menu, 
   X, 
   LogOut, 
-  User
+  MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+
 
 const Sidebar = () => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -91,12 +92,12 @@ const Sidebar = () => {
             </NavLink>
 
             <NavLink 
-              to="/user/profile" 
+              to="/mcpchat" 
               className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
               onClick={() => setIsExpanded(false)}
             >
-              <User className="mr-3" size={20} />
-              <span>My Profile</span>
+              <MessageCircle className="mr-3" size={20} />
+              <span>MCP Chat</span>
             </NavLink>
           </nav>
 
